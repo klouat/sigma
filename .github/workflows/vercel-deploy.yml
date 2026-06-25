@@ -14,6 +14,8 @@ jobs:
     concurrency:
       group: deploy-${{ github.ref }}
       cancel-in-progress: true
+    env:
+      HAS_VERCEL_SECRETS: ${{ secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != '' }}
 
     steps:
       - name: Checkout
@@ -28,43 +30,49 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
+      - name: Skip deploy when Vercel secrets are missing
+        if: env.HAS_VERCEL_SECRETS != 'true'
+        run: |
+          echo "Skipping Vercel deployment because one or more required secrets are missing."
+          echo "Required secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID"
+
       - name: Pull Vercel environment
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && env.HAS_VERCEL_SECRETS == 'true'
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Pull Vercel production environment
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && env.HAS_VERCEL_SECRETS == 'true'
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build preview artifacts
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && env.HAS_VERCEL_SECRETS == 'true'
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build production artifacts
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && env.HAS_VERCEL_SECRETS == 'true'
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy preview
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && env.HAS_VERCEL_SECRETS == 'true'
         run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy production
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && env.HAS_VERCEL_SECRETS == 'true'
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
