@@ -96,8 +96,7 @@ const KNOWN_HARAKAT: KnownHarakat[] = [
 ];
 
 const HAND_MODEL_PATH = "/models/hand_landmarker.task";
-const HAND_WASM_PATH =
-  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
+const HAND_WASM_PATH = "/mediapipe/wasm";
 const UI_REFRESH_MS = 120;
 const CHARACTER_THRESHOLD = 80;
 const CHARACTER_MARGIN_THRESHOLD = 8;
@@ -619,6 +618,8 @@ export function ArabicSignDetector() {
 
     async function loadLandmarker() {
       try {
+        setLoadError(null);
+        setModelStatus("Loading hand detector runtime...");
         const visionModule = await import("@mediapipe/tasks-vision");
         const { FilesetResolver, HandLandmarker: HandLandmarkerClass } = visionModule;
         const vision = await FilesetResolver.forVisionTasks(HAND_WASM_PATH);
@@ -626,6 +627,7 @@ export function ArabicSignDetector() {
         let handLandmarker: HandLandmarker;
 
         try {
+          setModelStatus("Loading hand detector model...");
           handLandmarker = await HandLandmarkerClass.createFromOptions(vision, {
             baseOptions: {
               modelAssetPath: HAND_MODEL_PATH,
@@ -637,7 +639,8 @@ export function ArabicSignDetector() {
             minHandPresenceConfidence: 0.45,
             minTrackingConfidence: 0.45,
           });
-        } catch {
+        } catch (gpuError) {
+          setModelStatus("GPU hand detector unavailable. Loading CPU detector...");
           handLandmarker = await HandLandmarkerClass.createFromOptions(vision, {
             baseOptions: {
               modelAssetPath: HAND_MODEL_PATH,
@@ -648,6 +651,10 @@ export function ArabicSignDetector() {
             minHandPresenceConfidence: 0.45,
             minTrackingConfidence: 0.45,
           });
+
+          if (process.env.NODE_ENV !== "production") {
+            console.warn("MediaPipe GPU delegate failed; using CPU delegate.", gpuError);
+          }
         }
 
         if (!isMounted) {

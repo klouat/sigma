@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { NextResponse } from "next/server";
 
 const HARAKAT_FILES: Record<string, string> = {
-  fathah: "brave_JQkfKyj1F9.png",
-  kasrah: "brave_v3D1fsS6R0.png",
+  fathah: "fathah.png",
+  kasrah: "kasrah.png",
 };
 
 export async function GET(
