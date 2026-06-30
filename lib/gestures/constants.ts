@@ -49,6 +49,41 @@ export const KNOWN_HARAKAT: KnownHarakat[] = [
     instruction: "Form Alif or Ba, then move the hand downward.",
     direction: "Downward movement",
   },
+  {
+    key: "dammah",
+    label: "Dammah",
+    referenceSrc: "/api/harakat-reference/dammah",
+    instruction: "Form Alif or Ba, then move the hand in a curve downward.",
+    direction: "Curved downward movement",
+  },
+  {
+    key: "fathatain",
+    label: "Fathatain",
+    referenceSrc: "/api/harakat-reference/fathatain",
+    instruction: "Form character, then move the hand horizontally back and forth.",
+    direction: "Double horizontal movement",
+  },
+  {
+    key: "kasratain",
+    label: "Kasratain",
+    referenceSrc: "/api/harakat-reference/kasratain",
+    instruction: "Form V shape (index and middle fingers), then move downward.",
+    direction: "Downward movement with V shape",
+  },
+  {
+    key: "dammatain",
+    label: "Dammatain",
+    referenceSrc: "/api/harakat-reference/dammatain",
+    instruction: "Form V shape (index and middle fingers), then move in a curve downward.",
+    direction: "Curved downward movement with V shape",
+  },
+  {
+    key: "sukun",
+    label: "Sukun",
+    referenceSrc: "/api/harakat-reference/sukun",
+    instruction: "Form character and hold it completely still.",
+    direction: "Hold still without movement",
+  },
 ];
 
 export const HAND_MODEL_PATH = "/models/hand_landmarker.task";
@@ -99,6 +134,11 @@ export const CHARACTER_COLORS: Record<CharacterKey | "unknown", string> = {
 export const HARAKAT_COLORS: Record<HarakatKey | "unknown", string> = {
   fathah: "#00ed64",
   kasrah: "#53b7f2",
+  dammah: "#ff9f1c",
+  fathatain: "#2ec4b6",
+  kasratain: "#011627",
+  dammatain: "#e71d36",
+  sukun: "#9c89b8",
   unknown: "#d7e1dc",
 };
 

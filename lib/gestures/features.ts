@@ -1,6 +1,13 @@
 import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
 import type { FingerScores, GestureFeatures, KnownCharacter, KnownHarakat, MotionSample } from "./types";
 import { HARAKAT_CHARACTER_THRESHOLD, HARAKAT_THRESHOLD, KNOWN_HARAKAT, MOVEMENT_DISTANCE_THRESHOLD } from "./constants";
+import { Fathah } from "./classifiers/Fathah";
+import { Kasrah } from "./classifiers/Kasrah";
+import { Dammah } from "./classifiers/Dammah";
+import { Fathatain } from "./classifiers/Fathatain";
+import { Kasratain } from "./classifiers/Kasratain";
+import { Dammatain } from "./classifiers/Dammatain";
+import { Sukun } from "./classifiers/Sukun";
 
 export const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -350,8 +357,8 @@ export function computeGestureFeatures(landmarks: NormalizedLandmark[]): Gesture
     1
   );
   const thumbDown = clamp(
-    (landmarks[0].y - landmarks[4].y) * 4.2 +
-      (landmarks[3].y - landmarks[4].y) * 2.8 +
+    (landmarks[4].y - landmarks[0].y) * 4.2 +
+      (landmarks[4].y - landmarks[3].y) * 2.8 +
       (1 - fingerScores.thumb) * 0.1,
     0,
     1
@@ -484,14 +491,24 @@ export function getCombinedArabic(character: KnownCharacter | null, harakat: Kno
     return character.arabic;
   }
 
-  const mark = harakat.key === "fathah" ? "\u064E" : "\u0650";
+  let mark = "";
+  switch (harakat.key) {
+    case "fathah": mark = "\u064E"; break;
+    case "kasrah": mark = "\u0650"; break;
+    case "dammah": mark = "\u064F"; break;
+    case "fathatain": mark = "\u064B"; break;
+    case "kasratain": mark = "\u064D"; break;
+    case "dammatain": mark = "\u064C"; break;
+    case "sukun": mark = "\u0652"; break;
+  }
   return `${character.arabic}${mark}`;
 }
 
 export function classifyHarakatMotion(
   samples: MotionSample[],
   character: KnownCharacter | null,
-  characterAccuracy: number
+  characterAccuracy: number,
+  features: GestureFeatures | null = null
 ) {
   if (
     !character ||
@@ -513,7 +530,22 @@ export function classifyHarakatMotion(
   const downwardDistance = Math.max(0, deltaY);
   const totalDistance = Math.hypot(deltaX, deltaY);
 
-  if (totalDistance < MOVEMENT_DISTANCE_THRESHOLD) {
+  // Calculate total path length for Fathatain back-and-forth detection
+  let pathLength = 0;
+  for (let i = 1; i < samples.length; i++) {
+    pathLength += Math.hypot(samples[i].x - samples[i - 1].x, samples[i].y - samples[i - 1].y);
+  }
+
+  const sukunScore = Sukun(totalDistance);
+  if (sukunScore >= 0.8 && characterAccuracy >= HARAKAT_CHARACTER_THRESHOLD) {
+    return {
+      harakat: KNOWN_HARAKAT[6],
+      accuracy: Math.round(sukunScore * 1000) / 10,
+      direction: "Held still.",
+    };
+  }
+
+  if (totalDistance < MOVEMENT_DISTANCE_THRESHOLD && pathLength < MOVEMENT_DISTANCE_THRESHOLD * 1.5) {
     return {
       harakat: null,
       accuracy: 0,
@@ -521,48 +553,41 @@ export function classifyHarakatMotion(
     };
   }
 
-  const fathahScore = clamp(
-    horizontalDistance * 5.4 -
-      Math.abs(deltaY) * 1.7 +
-      (horizontalDistance > Math.abs(deltaY) ? 0.22 : 0),
-    0,
-    1
-  );
-  const kasrahScore = clamp(
-    downwardDistance * 6.5 -
-      horizontalDistance * 1.9 +
-      (downwardDistance > horizontalDistance ? 0.22 : 0),
-    0,
-    1
-  );
+  const fathahScore = Fathah(horizontalDistance, deltaY);
+  const kasrahScore = Kasrah(downwardDistance, horizontalDistance);
+  const dammahScore = Dammah(downwardDistance, horizontalDistance);
+  const fathatainScore = Fathatain(horizontalDistance, deltaY, pathLength);
+  
+  const vShapeScore = features?.indexMiddlePair ?? 0;
+  const kasratainScore = Kasratain(downwardDistance, horizontalDistance, vShapeScore);
+  const dammatainScore = Dammatain(downwardDistance, horizontalDistance, vShapeScore);
 
-  if (fathahScore >= kasrahScore && fathahScore >= 0.45) {
-    const accuracy = Math.round(fathahScore * 1000) / 10;
+  const scores = [
+    { harakat: KNOWN_HARAKAT[0], score: fathahScore, name: "fathah", dir: "Horizontal motion" },
+    { harakat: KNOWN_HARAKAT[1], score: kasrahScore, name: "kasrah", dir: "Downward motion" },
+    { harakat: KNOWN_HARAKAT[2], score: dammahScore, name: "dammah", dir: "Curved motion" },
+    { harakat: KNOWN_HARAKAT[3], score: fathatainScore, name: "fathatain", dir: "Double horizontal motion" },
+    { harakat: KNOWN_HARAKAT[4], score: kasratainScore, name: "kasratain", dir: "V shape downward motion" },
+    { harakat: KNOWN_HARAKAT[5], score: dammatainScore, name: "dammatain", dir: "V shape curved motion" },
+  ];
+
+  const bestScore = scores.reduce((prev, curr) => (curr.score > prev.score ? curr : prev));
+
+  if (bestScore.score >= 0.45) {
+    const accuracy = Math.round(bestScore.score * 1000) / 10;
     return {
-      harakat: accuracy >= HARAKAT_THRESHOLD ? KNOWN_HARAKAT[0] : null,
+      harakat: accuracy >= HARAKAT_THRESHOLD ? bestScore.harakat : null,
       accuracy,
       direction:
         accuracy >= HARAKAT_THRESHOLD
-          ? "Horizontal motion detected."
-          : "Horizontal motion is visible, but confidence is below 80%.",
-    };
-  }
-
-  if (kasrahScore > fathahScore && kasrahScore >= 0.45) {
-    const accuracy = Math.round(kasrahScore * 1000) / 10;
-    return {
-      harakat: accuracy >= HARAKAT_THRESHOLD ? KNOWN_HARAKAT[1] : null,
-      accuracy,
-      direction:
-        accuracy >= HARAKAT_THRESHOLD
-          ? "Downward motion detected."
-          : "Downward motion is visible, but confidence is below 80%.",
+          ? `${bestScore.dir} detected.`
+          : `${bestScore.dir} is visible, but confidence is below 80%.`,
     };
   }
 
   return {
     harakat: null,
-    accuracy: Math.round(Math.max(fathahScore, kasrahScore) * 1000) / 10,
+    accuracy: Math.round(bestScore.score * 1000) / 10,
     direction: "Movement detected, but direction is still unclear.",
   };
 }

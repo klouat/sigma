@@ -86,5 +86,6 @@ export function classifyCharacter(landmarks: NormalizedLandmark[]) {
         : null,
     accuracy: scores[0].accuracy,
     fingerScores: features.fingerScores,
+    features,
   };
 }

@@ -5,7 +5,7 @@ export type CharacterKey =
   | "dzal" | "ra" | "zai" | "sin" | "syin" | "shad" | "dad" | "tha"
   | "zha" | "ain" | "gain" | "fa" | "qaf" | "kaf" | "lam" | "mim"
   | "nun" | "waw" | "haa" | "ya" | "alifMaqsurah" | "taMarbutah";
-export type HarakatKey = "fathah" | "kasrah";
+export type HarakatKey = "fathah" | "kasrah" | "dammah" | "fathatain" | "kasratain" | "dammatain" | "sukun";
 export type FingerName = "thumb" | "index" | "middle" | "ring" | "pinky";
 export type FingerScores = Record<FingerName, number>;
 

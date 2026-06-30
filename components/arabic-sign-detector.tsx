@@ -352,10 +352,14 @@ export function ArabicSignDetector() {
           motionHistoryRef.current[handId] = samples;
           seenIds.add(handId);
 
+          const activeCharacter = characterResult.character ?? lastCharacterDetected?.character ?? null;
+          const activeAccuracy = characterResult.character ? characterResult.accuracy : (lastCharacterDetected?.characterAccuracy ?? 0);
+
           const harakatResult = classifyHarakatMotion(
             samples,
-            characterResult.character,
-            characterResult.accuracy
+            activeCharacter,
+            activeAccuracy,
+            characterResult.features
           );
 
           if (
@@ -549,7 +553,7 @@ export function ArabicSignDetector() {
           <p className="mt-5 max-w-2xl text-lg leading-8 text-[#4d636b]">
             The detector always reads the base character first. When that base
             character is detected clearly enough and your hand movement is clear
-            enough, it also adds Fathah or Kasrah automatically.
+            enough, it also adds Fathah, Kasrah, or Dammah automatically.
           </p>
         </div>
 
@@ -599,8 +603,8 @@ export function ArabicSignDetector() {
                         </p>
                         <p className="mt-2 text-sm leading-7 text-white/72">
                           Start the camera, then show a supported character
-                          sign. For harakat, move it left-right for Fathah or
-                          downward for Kasrah.
+                          sign. For harakat, move it left-right for Fathah,
+                          downward for Kasrah, or curve for Dammah.
                         </p>
                       </div>
                     </div>
@@ -783,7 +787,9 @@ export function ArabicSignDetector() {
                       <p className="mt-3 text-sm leading-7 text-[#4d636b]">
                         {item.label === "Fathah"
                           ? "Form a supported character sign, then move the hand horizontally."
-                          : "Form a supported character sign, then move the hand downward."}
+                          : item.label === "Kasrah"
+                            ? "Form a supported character sign, then move the hand downward."
+                            : "Form a supported character sign, then move the hand in a curve downward."}
                       </p>
                     </div>
                   ))}
@@ -869,16 +875,32 @@ export function ArabicSignDetector() {
 
               <div className="mt-4 rounded-2xl bg-[#082c3c] p-5 text-white">
                 <p className="text-sm text-white/68">Last confirmed result</p>
-                <p className="mt-2 font-[var(--font-display)] text-4xl">
-                  {lastHarakatDetected?.combinedArabic ??
-                    lastCharacterDetected?.character?.arabic ??
-                    "-"}
-                </p>
-                <p className="mt-2 text-lg">
+                <div className="mt-2 font-[var(--font-display)] text-4xl leading-tight">
                   {lastHarakatDetected
-                    ? `${lastHarakatDetected.character?.label ?? ""} + ${lastHarakatDetected.harakat?.label ?? ""}`
+                    ? lastHarakatDetected.harakat?.key === "fathah" || lastHarakatDetected.harakat?.key === "fathatain"
+                      ? (
+                        <div className="flex items-center gap-3">
+                          <span>{lastHarakatDetected.character?.arabic ?? ""}&#x064E;</span>
+                          <span className="text-xl text-white/68">or</span>
+                          <span>{lastHarakatDetected.character?.arabic ?? ""}&#x064B;</span>
+                        </div>
+                      )
+                      : lastHarakatDetected.combinedArabic
+                    : lastCharacterDetected?.character?.arabic ?? "-"}
+                </div>
+                <div className="mt-3 text-lg">
+                  {lastHarakatDetected
+                    ? lastHarakatDetected.harakat?.key === "fathah" || lastHarakatDetected.harakat?.key === "fathatain"
+                      ? (
+                        <div className="flex flex-col gap-1">
+                          <p>• {lastHarakatDetected.character?.label ?? ""} + Fathah</p>
+                          <p className="text-sm text-white/68 ml-4">or</p>
+                          <p>• {lastHarakatDetected.character?.label ?? ""} + Fathatain</p>
+                        </div>
+                      )
+                      : `${lastHarakatDetected.character?.label ?? ""} + ${lastHarakatDetected.harakat?.label ?? ""}`
                     : lastCharacterDetected?.character?.label ?? "No confirmed detection yet"}
-                </p>
+                </div>
                 <p className="mt-1 text-sm text-white/62">
                   {lastHarakatDetected?.motionDirection ??
                     (lastCharacterDetected
@@ -932,7 +954,7 @@ export function ArabicSignDetector() {
               <div className="mt-5 rounded-2xl border border-[#dce4df] bg-[#f8faf8] p-4 text-sm leading-7 text-[#4d636b]">
                 The detector always reads the character set first. When the
                 detected base character is clear enough, horizontal motion maps
-                to Fathah and downward motion maps to Kasrah. Minimum confidence
+                to Fathah, downward motion maps to Kasrah, and curved motion maps to Dammah. Minimum confidence
                 is 80%.
               </div>
             </div>

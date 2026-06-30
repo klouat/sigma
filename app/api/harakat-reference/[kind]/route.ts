@@ -5,6 +5,11 @@ import { NextResponse } from "next/server";
 const HARAKAT_FILES: Record<string, string> = {
   fathah: "fathah.png",
   kasrah: "kasrah.png",
+  dammah: "dammah.png",
+  fathatain: "Fathatain.png",
+  kasratain: "Kasratain.png",
+  dammatain: "Dammatain.png",
+  sukun: "sukun.png",
 };
 
 export async function GET(
