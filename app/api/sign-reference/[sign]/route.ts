@@ -22,15 +22,16 @@ const SIGN_FILES: Record<string, string> = {
   zha: "Ẓa.png",
   ain: "ʿain.png",
   gain: "Gain.png",
-  fa: "Fa.png",
   qaf: "Qaf.png",
   kaf: "Kaf.png",
   lam: "Lam.png",
+  "lam-alif": "Lam Alif.png",
   mim: "Mim.png",
   nun: "Nun.png",
   waw: "Waw.png",
   haa: "Ha.png",
   ya: "Ya.png",
+  hamzah: "Hamzah.png",
   "alif-maqsurah": "Alif Maqsurah.png",
   "ta-marbutah": "Ta Marbutah.png",
 };
@@ -47,9 +48,18 @@ export async function GET(
   }
 
   const filePath = join(process.cwd(), "huruf", fileName);
-  const buffer = await readFile(filePath);
+  let buffer: Buffer;
 
-  return new NextResponse(buffer, {
+  try {
+    buffer = await readFile(filePath);
+  } catch {
+    return NextResponse.json(
+      { error: "Sign reference image is missing." },
+      { status: 404 }
+    );
+  }
+
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "content-type": "image/png",
       "cache-control": "public, max-age=31536000, immutable",

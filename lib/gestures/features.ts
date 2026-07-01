@@ -34,9 +34,10 @@ export function scoreVerticalFinger(
 ) {
   const tipAbovePip = clamp((pip.y - tip.y) * 4.5, 0, 1);
   const tipAboveMcp = clamp((mcp.y - tip.y) * 3.2, 0, 1);
-  const reach = clamp((distance(tip, wrist) - distance(mcp, wrist)) * 2.4, 0, 1);
+  const reachFromWrist = clamp((distance(tip, wrist) - distance(mcp, wrist)) * 2.4, 0, 1);
+  const verticalReach = tipAbovePip * 0.55 + tipAboveMcp * 0.45;
 
-  return clamp(tipAbovePip * 0.45 + tipAboveMcp * 0.3 + reach * 0.25, 0, 1);
+  return clamp(verticalReach * 0.45 + reachFromWrist * 0.55, 0, 1);
 }
 
 export function scoreThumb(
@@ -48,13 +49,14 @@ export function scoreThumb(
 ) {
   const tipAboveIp = clamp((thumbIp.y - thumbTip.y) * 4.4, 0, 1);
   const tipAboveMcp = clamp((thumbMcp.y - thumbTip.y) * 3.1, 0, 1);
-  const reach = clamp(
+  const reachFromWrist = clamp(
     (distance(thumbTip, wrist) - distance(indexMcp, wrist)) * 2.2 + 0.35,
     0,
     1
   );
+  const verticalReach = tipAboveIp * 0.55 + tipAboveMcp * 0.45;
 
-  return clamp(tipAboveIp * 0.45 + tipAboveMcp * 0.35 + reach * 0.2, 0, 1);
+  return clamp(verticalReach * 0.35 + reachFromWrist * 0.65, 0, 1);
 }
 
 export function getFingerScores(landmarks: NormalizedLandmark[]): FingerScores {
@@ -94,6 +96,36 @@ export function scoreAround(value: number, center: number, tolerance: number) {
 export function computeGestureFeatures(landmarks: NormalizedLandmark[]): GestureFeatures {
   const fingerScores = getFingerScores(landmarks);
   const palmWidth = Math.max(distance(landmarks[5], landmarks[17]), 0.001);
+  const indexRaised = clamp(
+    (landmarks[5].y - landmarks[8].y) * 2.6 +
+      (landmarks[6].y - landmarks[8].y) * 2.2,
+    0,
+    1
+  );
+  const middleRaised = clamp(
+    (landmarks[9].y - landmarks[12].y) * 2.6 +
+      (landmarks[10].y - landmarks[12].y) * 2.2,
+    0,
+    1
+  );
+  const ringRaised = clamp(
+    (landmarks[13].y - landmarks[16].y) * 2.6 +
+      (landmarks[14].y - landmarks[16].y) * 2.2,
+    0,
+    1
+  );
+  const pinkyRaised = clamp(
+    (landmarks[17].y - landmarks[20].y) * 2.6 +
+      (landmarks[18].y - landmarks[20].y) * 2.2,
+    0,
+    1
+  );
+  const thumbRaised = clamp(
+    (landmarks[2].y - landmarks[4].y) * 2.4 +
+      (landmarks[3].y - landmarks[4].y) * 2.0,
+    0,
+    1
+  );
   const thumbIndexGap = distance(landmarks[4], landmarks[8]) / palmWidth;
   const thumbMiddleGap = distance(landmarks[4], landmarks[12]) / palmWidth;
   const thumbPinkyGap = distance(landmarks[4], landmarks[20]) / palmWidth;
@@ -319,10 +351,10 @@ export function computeGestureFeatures(landmarks: NormalizedLandmark[]): Gesture
     fingerScores.thumb * 0.3 +
       fingerScores.index * 0.3 +
       clamp(
-        (Math.abs(landmarks[4].y - landmarks[8].y) -
-          Math.abs(landmarks[4].x - landmarks[8].x)) *
+        (Math.abs(landmarks[4].x - landmarks[8].x) -
+          Math.abs(landmarks[4].y - landmarks[8].y)) *
           2.2 +
-          0.35,
+          0.15,
         0,
         0.6
       ) *
@@ -375,6 +407,18 @@ export function computeGestureFeatures(landmarks: NormalizedLandmark[]): Gesture
     0,
     1
   );
+  const minHandX = Math.min(...landmarks.map((point) => point.x));
+  const maxHandX = Math.max(...landmarks.map((point) => point.x));
+  const minHandY = Math.min(...landmarks.map((point) => point.y));
+  const maxHandY = Math.max(...landmarks.map((point) => point.y));
+  const handAspect = (maxHandX - minHandX) / Math.max(maxHandY - minHandY, 0.001);
+  const sideFist = clamp(
+    fullFist * 0.55 +
+      clamp((handAspect - 0.78) * 1.8, 0, 1) * 0.3 +
+      wristAngle * 0.15,
+    0,
+    1
+  );
   const thumbPinkySpread = clamp(
     Math.min(fingerScores.thumb, fingerScores.pinky) -
       Math.max(fingerScores.index, fingerScores.middle, fingerScores.ring) * 0.5 +
@@ -406,6 +450,11 @@ export function computeGestureFeatures(landmarks: NormalizedLandmark[]): Gesture
 
   return {
     fingerScores,
+    indexRaised,
+    middleRaised,
+    ringRaised,
+    pinkyRaised,
+    thumbRaised,
     thumbIndexGap,
     thumbMiddleGap,
     thumbPinkyGap,
@@ -441,6 +490,7 @@ export function computeGestureFeatures(landmarks: NormalizedLandmark[]): Gesture
     indexPinkyUp,
     thumbDown,
     looseFist,
+    sideFist,
     thumbPinkySpread,
     extensionRatio,
     indexMiddleCrossed,

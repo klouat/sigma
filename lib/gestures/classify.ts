@@ -21,7 +21,6 @@ import { scoreTha } from "./classifiers/tha";
 import { scoreZha } from "./classifiers/zha";
 import { scoreAin } from "./classifiers/ain";
 import { scoreGain } from "./classifiers/gain";
-import { scoreFa } from "./classifiers/fa";
 import { scoreQaf } from "./classifiers/qaf";
 import { scoreKaf } from "./classifiers/kaf";
 import { scoreLam } from "./classifiers/lam";
@@ -29,9 +28,10 @@ import { scoreMim } from "./classifiers/mim";
 import { scoreNun } from "./classifiers/nun";
 import { scoreWaw } from "./classifiers/waw";
 import { scoreHaa } from "./classifiers/haa";
-import { scoreYa } from "./classifiers/ya";
 import { scoreAlifMaqsurah } from "./classifiers/alif-maqsurah";
 import { scoreTaMarbutah } from "./classifiers/ta-marbutah";
+import { scoreHamzah } from "./classifiers/hamzah";
+import { scoreLamAlif } from "./classifiers/lam-alif";
 
 const SCORERS: Record<string, (f: GestureFeatures) => number> = {
   alif: scoreAlif,
@@ -53,7 +53,6 @@ const SCORERS: Record<string, (f: GestureFeatures) => number> = {
   zha: scoreZha,
   ain: scoreAin,
   gain: scoreGain,
-  fa: scoreFa,
   qaf: scoreQaf,
   kaf: scoreKaf,
   lam: scoreLam,
@@ -61,9 +60,10 @@ const SCORERS: Record<string, (f: GestureFeatures) => number> = {
   nun: scoreNun,
   waw: scoreWaw,
   haa: scoreHaa,
-  ya: scoreYa,
   alifMaqsurah: scoreAlifMaqsurah,
   taMarbutah: scoreTaMarbutah,
+  hamzah: scoreHamzah,
+  lamAlif: scoreLamAlif,
 };
 
 export function classifyCharacter(landmarks: NormalizedLandmark[]) {

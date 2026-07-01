@@ -11,7 +11,13 @@ import type {
 import { Camera, CameraOff, Hand, ScanSearch } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { CollectionLabel, CollectedSample, Connection, LiveDetection, MotionSample } from "@/lib/gestures/types";
+import type {
+  CollectionLabel,
+  CollectedSample,
+  Connection,
+  LiveDetection,
+  MotionSample,
+} from "@/lib/gestures/types";
 import {
   KNOWN_CHARACTERS,
   KNOWN_HARAKAT,
@@ -114,7 +120,9 @@ function drawResults(
       ? `${detection.combinedArabic ?? detection.harakat.label} ${detection.harakatAccuracy.toFixed(1)}%`
       : detection?.character
         ? `${detection.character.label} ${detection.character.arabic} ${detection.characterAccuracy.toFixed(1)}%`
-        : "Show a supported character sign";
+        : detection && detection.characterAccuracy > 0
+          ? `Hold steady ${detection.characterAccuracy.toFixed(1)}%`
+          : "Show a supported character sign";
 
     const labelWidth = context.measureText(label).width + 20;
     const labelX = bounds.x;
@@ -180,7 +188,7 @@ export function ArabicSignDetector() {
               delegate: "GPU",
             },
             runningMode: "VIDEO",
-            numHands: 1,
+            numHands: 2,
             minHandDetectionConfidence: 0.45,
             minHandPresenceConfidence: 0.45,
             minTrackingConfidence: 0.45,
@@ -192,7 +200,7 @@ export function ArabicSignDetector() {
               modelAssetPath: HAND_MODEL_PATH,
             },
             runningMode: "VIDEO",
-            numHands: 1,
+            numHands: 2,
             minHandDetectionConfidence: 0.45,
             minHandPresenceConfidence: 0.45,
             minTrackingConfidence: 0.45,
@@ -394,6 +402,29 @@ export function ArabicSignDetector() {
             motionDirection: harakatResult.direction,
           };
         });
+
+        const lamAlifHands =
+          nextDetections.length >= 2 &&
+          nextDetections.some(
+            (item) => item.character?.key === "lam" && item.characterAccuracy >= CHARACTER_THRESHOLD
+          ) &&
+          nextDetections.some(
+            (item) => item.character?.key === "alif" && item.characterAccuracy >= CHARACTER_THRESHOLD
+          );
+
+        if (lamAlifHands) {
+          const lamAlifCharacter = KNOWN_CHARACTERS.find(
+            (item) => item.key === "lamAlif"
+          );
+
+          if (lamAlifCharacter) {
+            nextDetections.forEach((item) => {
+              item.character = lamAlifCharacter;
+              item.characterAccuracy = Math.max(item.characterAccuracy, CHARACTER_THRESHOLD);
+              item.combinedArabic = getCombinedArabic(lamAlifCharacter, item.harakat);
+            });
+          }
+        }
 
         for (const handId of Object.keys(motionHistoryRef.current)) {
           if (!seenIds.has(handId)) {
@@ -837,7 +868,7 @@ export function ArabicSignDetector() {
                 <p className="mt-1 text-sm text-white/62">
                   {primaryDetection?.harakat
                     ? primaryDetection.motionDirection
-                    : "Character confidence must reach at least 80%."}
+                    : `Character confidence must reach at least ${CHARACTER_THRESHOLD}%.`}
                 </p>
 
                 <div className="mt-5">
@@ -904,8 +935,8 @@ export function ArabicSignDetector() {
                 <p className="mt-1 text-sm text-white/62">
                   {lastHarakatDetected?.motionDirection ??
                     (lastCharacterDetected
-                      ? "Saved when character confidence reaches at least 80%."
-                      : "Needs at least 80% confidence to save a result.")}
+                      ? `Saved when character confidence reaches at least ${CHARACTER_THRESHOLD}%.`
+                      : `Needs at least ${CHARACTER_THRESHOLD}% confidence to save a result.`)}
                 </p>
               </div>
             </div>
@@ -955,7 +986,7 @@ export function ArabicSignDetector() {
                 The detector always reads the character set first. When the
                 detected base character is clear enough, horizontal motion maps
                 to Fathah, downward motion maps to Kasrah, and curved motion maps to Dammah. Minimum confidence
-                is 80%.
+                is {CHARACTER_THRESHOLD}%.
               </div>
             </div>
           </div>

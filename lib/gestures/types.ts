@@ -4,7 +4,8 @@ export type CharacterKey =
   | "alif" | "ba" | "ta" | "sha" | "dal" | "jim" | "ha" | "kha"
   | "dzal" | "ra" | "zai" | "sin" | "syin" | "shad" | "dad" | "tha"
   | "zha" | "ain" | "gain" | "fa" | "qaf" | "kaf" | "lam" | "mim"
-  | "nun" | "waw" | "haa" | "ya" | "alifMaqsurah" | "taMarbutah";
+  | "nun" | "waw" | "haa" | "ya" | "alifMaqsurah" | "taMarbutah"
+  | "hamzah" | "lamAlif";
 export type HarakatKey = "fathah" | "kasrah" | "dammah" | "fathatain" | "kasratain" | "dammatain" | "sukun";
 export type FingerName = "thumb" | "index" | "middle" | "ring" | "pinky";
 export type FingerScores = Record<FingerName, number>;
@@ -61,6 +62,11 @@ export type LiveDetection = {
 
 export type GestureFeatures = {
   fingerScores: FingerScores;
+  indexRaised: number;
+  middleRaised: number;
+  ringRaised: number;
+  pinkyRaised: number;
+  thumbRaised: number;
   thumbIndexGap: number;
   thumbMiddleGap: number;
   thumbPinkyGap: number;
@@ -96,6 +102,7 @@ export type GestureFeatures = {
   indexPinkyUp: number;
   thumbDown: number;
   looseFist: number;
+  sideFist: number;
   thumbPinkySpread: number;
   extensionRatio: number;
   indexMiddleCrossed: number;
