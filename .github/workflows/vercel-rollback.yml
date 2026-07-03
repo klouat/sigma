@@ -1,0 +1,25 @@
+name: Rollback Vercel
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_url:
+        description: Deployment URL or deployment id to promote/rollback to
+        required: true
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Promote previous deployment
+        run: vercel promote "${{ inputs.deployment_url }}" --scope="${{ secrets.VERCEL_ORG_ID }}" --token="${{ secrets.VERCEL_TOKEN }}"
